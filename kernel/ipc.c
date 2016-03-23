@@ -97,6 +97,27 @@ void send (PORT dest_port, void* data)
 
 void message (PORT dest_port, void* data)
 {
+	PROCESS dest;
+
+	assert (dest_port->magic == MAGIC_PORT);
+	dest = dest_port->owner;
+	assert (dest->magic == MAGIC_PCB);
+
+	if (dest_port->open && dest->state == STATE_RECEIVE_BLOCKED) {
+		/* Receiver can receive the message. */
+		dest->param_proc = active_proc;
+		dest->param_data = data;
+		add_ready_queue (dest);
+	} else {
+		/* Receiver is either busy or the port is closed.
+		 * Get on the send blocked queue of the port.
+		 */
+		add_to_send_blocked_list (dest_port, active_proc);
+		remove_ready_queue (active_proc);
+		active_proc->state = STATE_MESSAGE_BLOCKED;
+		active_proc->param_data = data;
+	}
+	resign();
 }
 
 
@@ -108,6 +129,10 @@ void* receive (PROCESS* sender)
 
 void reply (PROCESS sender)
 {
+	if (sender->state != STATE_REPLY_BLOCKED)
+		panic ("reply(): Not reply blocked");
+	add_ready_queue (sender);
+	resign();
 }
 
 
