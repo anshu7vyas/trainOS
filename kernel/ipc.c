@@ -39,21 +39,59 @@ PORT create_new_port (PROCESS owner)
 }
 
 
+void add_to_send_blocked_list (PORT port, PROCESS proc)
+{
+	assert (port->magic == MAGIC_PORT);
+	assert (proc->magic == MAGIC_PCB);
+	if (port->blocked_list_head == NULL)
+		port->blocked_list_head = proc;
+	else
+		port->blocked_list_tail->next_blocked = proc;
+	port->blocked_list_tail = proc;
+	proc->next_blocked = NULL;
+}
 
 
 void open_port (PORT port)
 {
+	assert (port->magic == MAGIC_PORT);
+	port->open = TRUE;
 }
 
 
 
 void close_port (PORT port)
 {
+	assert (port->magic == MAGIC_PORT);
+	port->open = FALSE;
 }
 
 
 void send (PORT dest_port, void* data)
 {
+	PROCESS dest;
+
+	assert (dest_port->magic == MAGIC_PORT);
+	dest = dest_port->owner;
+	assert (dest->magic = MAGIC_PORT);
+
+	if (dest_port->open && dest->state == STATE_RECEIVE_BLOCKED) {
+		/* Receive ris RECEIVE_BLOCKED. Sender can deliver the message.*/
+		dest->param_proc		= active_proc;
+		dest->param_data 		= data;
+		active_proc->state 		= STATE_REPLY_BLOCKED;
+		add_ready_queue (dest);
+	} else {
+		/* Receiver is busy or the port is closed. Get on the send blocked 
+		 * queue of the port. 
+		 */
+		add_to_send_blocked_list (dest_port, active_proc);
+		active_proc->state = STATE_SEND_BLOCKED;
+		active_proc->param_data = data;
+	}
+	active_proc->param_data = data;
+	remove_ready_queue (active_proc);
+	resign();
 }
 
 
