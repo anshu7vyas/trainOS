@@ -124,6 +124,48 @@ void message (PORT dest_port, void* data)
 
 void* receive (PROCESS* sender)
 {
+	PROCESS		deliver_proc;
+	PORT 		port;
+	void 		*data;
+
+	data = NULL;
+	port = active_proc->first_port;
+	if (port == NULL)
+		panic ("receive(): no port created for this process");
+	while (port != NULL) {
+		assert (port->magic == MAGIC_PORT);
+		if (port->open && port->blocked_list_head != NULL)
+			break;
+		port = port->next;
+	}
+
+	if (port != NULL) {
+		deliver_proc = port->blocked_list_head;
+		assert (deliver_proc->magic == MAGIC_PCB);
+		*sender = deliver_proc;
+		data = deliver_proc->param_data;
+		port->blocked_list_head = 
+			port->blocked_list_head->next_blocked;
+		if (port->blocked_list_head == NULL)
+			port->blocked_list_tail == NULL;
+
+		if (deliver_proc->state == STATE_MESSAGE_BLOCKED) {
+			add_ready_queue (deliver_proc);
+			return data;
+		} else if (deliver_proc->state == STATE_SEND_BLOCKED) {
+			deliver_proc->state = STATE_REPLY_BLOCKED;
+			return data;
+		}
+	}
+
+	/* No messages pending. */
+	remove_ready_queue (active_proc);
+	active_proc->param_data = data;
+	active_proc->state = STATE_RECEIVE_BLOCKED;
+	resign();
+	*sender = active_proc->param_proc;
+	data = active_proc->param_data;
+	return data;
 }
 
 
