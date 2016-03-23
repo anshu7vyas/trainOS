@@ -112,6 +112,23 @@ PROCESS dispatcher()
  */
 void resign()
 {
+	/*Save a process' context*/
+	asm ("pushl %eax;pushl %ecx;pushl %edx");
+	asm ("pushl %ebx;pushl %ebp;pushl %esi;pushl %edi");
+
+	/*Save the context pointer SS:ESP to the PCB*/
+	asm ("movl %%esp,%0" : "=r" (active_proc->esp) : );
+
+	/*Dispatch new process */
+	active_proc = dispatcher();
+
+	/*Restore context pointer SS:ESP */
+	asm ("movl %0,%%esp" : : "r" (active_proc->esp));
+
+	/*Restore previously saved context and return to the new process*/
+	asm ("popl %edi;popl %esi;popl %ebp;popl %ebx");
+	asm ("popl %edx; popl %ecx;popl %eax");
+	asm ("ret");
 }
 
 
