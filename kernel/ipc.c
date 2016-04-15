@@ -73,7 +73,7 @@ void send (PORT dest_port, void* data)
 
 	assert (dest_port->magic == MAGIC_PORT);
 	dest = dest_port->owner;
-	assert (dest->magic = MAGIC_PORT);
+	assert (dest->magic = MAGIC_PCB);
 
 	if (dest_port->open && dest->state == STATE_RECEIVE_BLOCKED) {
 		/* Receive ris RECEIVE_BLOCKED. Sender can deliver the message.*/
