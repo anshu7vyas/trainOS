@@ -123,9 +123,9 @@ void print_all_processes(WINDOW* wnd)
     
     print_process_heading(wnd);
     for (i = 0; i < MAX_PROCS; i++, p++) {
-	if (!p->used)
-	    continue;
-	print_process_details(wnd, p);
+	   if (!p->used)
+	       continue;
+	   print_process_details(wnd, p);
     }
 }
 
