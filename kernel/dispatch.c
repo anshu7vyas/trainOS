@@ -113,6 +113,8 @@ PROCESS dispatcher()
 void resign()
 {
 	/*Save a process' context*/
+	asm ("pushfl;cli;popl %eax;xchgl (%esp),%eax");
+	asm ("push %cs;pushl %eax");
 	asm ("pushl %eax;pushl %ecx;pushl %edx");
 	asm ("pushl %ebx;pushl %ebp;pushl %esi;pushl %edi");
 
@@ -128,7 +130,7 @@ void resign()
 	/*Restore previously saved context and return to the new process*/
 	asm ("popl %edi;popl %esi;popl %ebp;popl %ebx");
 	asm ("popl %edx; popl %ecx;popl %eax");
-	asm ("ret");
+	asm ("iret");
 }
 
 
